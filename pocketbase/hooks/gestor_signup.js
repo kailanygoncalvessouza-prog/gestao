@@ -5,11 +5,37 @@ routerAdd('POST', '/backend/v1/gestor/signup', (e) => {
   const nome = (body.nome || '').trim()
   const empresaNome = (body.empresa_nome || '').trim()
 
-  if (!email || !password || !nome || !empresaNome) {
-    return e.json(400, { error: 'Todos os campos são obrigatórios.' })
+  const fieldErrors = {}
+
+  if (!nome) {
+    fieldErrors.nome = { message: 'Nome é obrigatório.' }
+  }
+  if (!empresaNome) {
+    fieldErrors.empresa_nome = { message: 'Nome da empresa é obrigatório.' }
+  }
+  if (!email) {
+    fieldErrors.email = { message: 'E-mail é obrigatório.' }
+  }
+  if (!password) {
+    fieldErrors.password = { message: 'Senha é obrigatória.' }
+  } else if (password.length < 8) {
+    fieldErrors.password = { message: 'A senha deve ter no mínimo 8 caracteres.' }
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return e.json(400, { data: fieldErrors })
   }
 
   try {
+    try {
+      $app.findAuthRecordByEmail('_pb_users_auth_', email)
+      return e.json(400, {
+        data: {
+          email: { message: 'Este e-mail já está cadastrado. Faça login ou utilize outro e-mail.' },
+        },
+      })
+    } catch (_) {}
+
     let empresaRec
     try {
       empresaRec = $app.findFirstRecordByData('empresas', 'nome', empresaNome)
@@ -20,11 +46,12 @@ routerAdd('POST', '/backend/v1/gestor/signup', (e) => {
       $app.save(empresaRec)
     }
 
-    // Check gestores limit (max 2 gestores per empresa)
     const filter = `empresa_id = '${empresaRec.id}' && perfil = 'GESTOR'`
     const gestores = $app.findRecordsByFilter('users', filter, '', 10, 0)
     if (gestores.length >= 2) {
-      return e.json(400, { error: 'Limite de 2 gestores por empresa atingido.' })
+      return e.json(400, {
+        data: { empresa_nome: { message: 'Limite de 2 gestores por empresa atingido.' } },
+      })
     }
 
     const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
@@ -39,6 +66,18 @@ routerAdd('POST', '/backend/v1/gestor/signup', (e) => {
 
     return e.json(201, { success: true, message: 'Conta criada com sucesso!' })
   } catch (err) {
-    return e.json(400, { error: err.message || 'Erro ao criar conta de gestor.' })
+    const errStr = String((err && err.message) || err || '')
+    if (
+      errStr.toLowerCase().includes('unique') ||
+      errStr.toLowerCase().includes('already') ||
+      errStr.toLowerCase().includes('duplicate')
+    ) {
+      return e.json(400, {
+        data: {
+          email: { message: 'Este e-mail já está cadastrado. Faça login ou utilize outro e-mail.' },
+        },
+      })
+    }
+    return e.json(400, { message: 'Erro ao criar conta. Tente novamente.' })
   }
 })

@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ListCheck, Key, Lock, Mail, Building, User as UserIcon } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
 export default function Index() {
   const { signInGestor, signUpGestor, signInColaborador } = useAuth()
@@ -26,6 +27,7 @@ export default function Index() {
   const [suEmail, setSuEmail] = useState('')
   const [suPassword, setSuPassword] = useState('')
   const [loadingSignUp, setLoadingSignUp] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   // Colaborador State
   const [token, setToken] = useState('')
@@ -49,6 +51,7 @@ export default function Index() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFieldErrors({})
     setLoadingSignUp(true)
     const { error } = await signUpGestor({
       email: suEmail,
@@ -58,11 +61,17 @@ export default function Index() {
     })
     setLoadingSignUp(false)
     if (error) {
-      toast({
-        title: 'Erro no cadastro',
-        description: error.message || 'Falha ao criar conta.',
-        variant: 'destructive',
-      })
+      const fe = extractFieldErrors(error)
+      setFieldErrors(fe)
+      if (Object.keys(fe).length === 0) {
+        const errResponse = (error as any)?.response
+        const msg = errResponse?.message || errResponse?.error || 'Falha ao criar conta.'
+        toast({
+          title: 'Erro no cadastro',
+          description: msg,
+          variant: 'destructive',
+        })
+      }
     } else {
       toast({ title: 'Sucesso', description: 'Conta de gestor criada com sucesso!' })
       setSignUpOpen(false)
@@ -213,7 +222,13 @@ export default function Index() {
       </div>
 
       {/* Sign Up Modal */}
-      <Dialog open={signUpOpen} onOpenChange={setSignUpOpen}>
+      <Dialog
+        open={signUpOpen}
+        onOpenChange={(open) => {
+          setSignUpOpen(open)
+          if (!open) setFieldErrors({})
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Criar Conta de Gestor</DialogTitle>
@@ -230,6 +245,7 @@ export default function Index() {
                   required
                 />
               </div>
+              {fieldErrors.nome && <p className="text-xs text-red-500">{fieldErrors.nome}</p>}
             </div>
             <div className="space-y-1">
               <Label>Nome da Empresa</Label>
@@ -242,6 +258,9 @@ export default function Index() {
                   required
                 />
               </div>
+              {fieldErrors.empresa_nome && (
+                <p className="text-xs text-red-500">{fieldErrors.empresa_nome}</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label>E-mail</Label>
@@ -255,6 +274,7 @@ export default function Index() {
                   required
                 />
               </div>
+              {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-1">
               <Label>Senha</Label>
@@ -269,6 +289,9 @@ export default function Index() {
                   minLength={8}
                 />
               </div>
+              {fieldErrors.password && (
+                <p className="text-xs text-red-500">{fieldErrors.password}</p>
+              )}
             </div>
             <Button type="submit" className="w-full mt-4" disabled={loadingSignUp}>
               {loadingSignUp ? 'Criando...' : 'Cadastrar Gestor'}
