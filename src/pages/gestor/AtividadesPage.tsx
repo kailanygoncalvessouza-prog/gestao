@@ -14,7 +14,7 @@ import {
   updateChecklistItem,
   deleteChecklistItem,
 } from '@/services/itens-checklist'
-import { createRecorrencia } from '@/services/recorrencias'
+import { createRecorrencia, getRecorrenciasByAtividade } from '@/services/recorrencias'
 import { Atividade, Colaborador, Setor, Priority, AttributionType } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -134,9 +134,20 @@ export default function AtividadesPage() {
     loadData()
   }
 
-  const handleEdit = (a: Atividade) => {
+  const handleEdit = async (a: Atividade) => {
     setEditingAtiv(a)
-    setModalMode('avulsa')
+    let mode: 'avulsa' | 'recorrente' = 'avulsa'
+    if (a.recorrencia_origem) {
+      mode = 'recorrente'
+    } else {
+      try {
+        const recs = await getRecorrenciasByAtividade(a.id)
+        if (recs.length > 0) mode = 'recorrente'
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+    setModalMode(mode)
     setModalOpen(true)
   }
 

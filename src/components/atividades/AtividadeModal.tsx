@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/utils'
 import { Colaborador, Priority, Setor, AttributionType, Atividade, RecurrenceType } from '@/types'
 import { FrequencySection } from '@/components/atividades/FrequencySection'
 import { ChecklistEditor, ChecklistItemInput } from '@/components/atividades/ChecklistEditor'
@@ -122,7 +123,7 @@ export function AtividadeModal({
         data.colaborador_alvo_id = colabAlvoId
         data.colaborador_id = colabAlvoId
       }
-      if (mode === 'recorrente' && !atividade) {
+      if (isCreatingRecorrente) {
         data.recorrencia = { frequencia, horario: horarioRec }
         if (frequencia === 'SEMANAL') data.recorrencia.dia_semana = [diaSemana]
         if (frequencia === 'MENSAL') data.recorrencia.dia_mes = diaMes
@@ -134,7 +135,8 @@ export function AtividadeModal({
     }
   }
 
-  const isRecorrente = mode === 'recorrente' && !atividade
+  const isRecorrente = mode === 'recorrente'
+  const isCreatingRecorrente = isRecorrente && !atividade
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,16 +241,18 @@ export function AtividadeModal({
               </Select>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Data Prazo *</Label>
-              <Input
-                type="date"
-                value={prazo}
-                onChange={(e) => setPrazo(e.target.value)}
-                required
-              />
-            </div>
+          <div className={cn('grid gap-3', isRecorrente ? 'grid-cols-1' : 'grid-cols-2')}>
+            {!isRecorrente && (
+              <div className="space-y-1.5">
+                <Label>Data Prazo *</Label>
+                <Input
+                  type="date"
+                  value={prazo}
+                  onChange={(e) => setPrazo(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Horário Limite</Label>
               <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
@@ -263,7 +267,7 @@ export function AtividadeModal({
             </div>
             <Switch checked={exigeFoto} onCheckedChange={setExigeFoto} />
           </div>
-          {isRecorrente && (
+          {isCreatingRecorrente && (
             <FrequencySection
               frequencia={frequencia}
               onFrequenciaChange={setFrequencia}

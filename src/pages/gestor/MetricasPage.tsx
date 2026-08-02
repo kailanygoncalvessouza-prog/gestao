@@ -14,6 +14,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AtividadesAtribuidasTable } from '@/components/metricas/AtividadesAtribuidasTable'
 
 export default function MetricasPage() {
   const { user } = useAuth()
@@ -142,6 +143,12 @@ export default function MetricasPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AtividadesAtribuidasTable
+        atividades={atividades}
+        colaboradores={colaboradores}
+        setores={setores}
+      />
     </div>
   )
 }
