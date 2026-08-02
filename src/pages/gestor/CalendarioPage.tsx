@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatPrazo } from '@/lib/utils'
 
 export default function CalendarioPage() {
   const { user } = useAuth()
@@ -99,8 +100,9 @@ export default function CalendarioPage() {
                       <div
                         key={a.id}
                         className="text-[10px] truncate p-1 rounded bg-primary/10 text-primary font-medium"
+                        title={`${formatPrazo(a.prazo, a.horario)} — ${a.titulo}`}
                       >
-                        {a.titulo}
+                        {formatPrazo(a.prazo, a.horario)} {a.titulo}
                       </div>
                     ))}
                   </div>

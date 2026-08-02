@@ -15,8 +15,18 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatPrazo(prazo: string, horario?: string): string {
   if (!prazo) return '—'
-  const parts = prazo.split('T')[0].split('-')
+  const datePart = prazo.split('T')[0]
+  const parts = datePart.split('-')
   if (parts.length !== 3) return prazo
-  const time = horario || '00:00'
-  return `${parts[2]}-${parts[1]}-${parts[0]} ${time}`
+  const [year, month, day] = parts
+  const dd = day.padStart(2, '0')
+  const mm = month.padStart(2, '0')
+  let time = horario || '00:00'
+  const timeParts = time.split(':')
+  if (timeParts.length >= 2) {
+    const hh = timeParts[0].padStart(2, '0')
+    const min = timeParts[1].padStart(2, '0')
+    time = `${hh}:${min}`
+  }
+  return `${dd}-${mm}-${year} ${time}`
 }

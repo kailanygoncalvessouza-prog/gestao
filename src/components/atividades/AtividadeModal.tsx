@@ -54,6 +54,7 @@ export function AtividadeModal({
   const [setorAlvoId, setSetorAlvoId] = useState('')
   const [colabAlvoId, setColabAlvoId] = useState('')
   const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [frequencia, setFrequencia] = useState<RecurrenceType>('DIARIA')
   const [diaSemana, setDiaSemana] = useState('seg')
   const [diaMes, setDiaMes] = useState<number | ''>(1)
@@ -61,6 +62,7 @@ export function AtividadeModal({
   const [checklist, setChecklist] = useState<ChecklistItemInput[]>([])
 
   useEffect(() => {
+    setFieldErrors({})
     if (atividade) {
       setTitulo(atividade.titulo)
       setDescricao(atividade.descricao || '')
@@ -102,6 +104,21 @@ export function AtividadeModal({
     if (atribuicao === 'SETOR' && !setorAlvoId) return
     if (atribuicao === 'COLABORADOR' && !colabAlvoId) return
     if (mode === 'recorrente' && !horarioRec) return
+    setFieldErrors({})
+    if (!isRecorrente) {
+      if (!prazo) {
+        setFieldErrors({ prazo: 'O prazo é obrigatório.' })
+        return
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(prazo)) {
+        setFieldErrors({ prazo: 'Data inválida. Use o formato DD-MM-AAAA.' })
+        return
+      }
+      if (horario && !/^\d{2}:\d{2}$/.test(horario)) {
+        setFieldErrors({ horario: 'Horário inválido. Use o formato HH:mm.' })
+        return
+      }
+    }
     setSaving(true)
     try {
       const data: any = {
@@ -248,14 +265,28 @@ export function AtividadeModal({
                 <Input
                   type="date"
                   value={prazo}
-                  onChange={(e) => setPrazo(e.target.value)}
+                  onChange={(e) => {
+                    setPrazo(e.target.value)
+                    setFieldErrors((prev) => ({ ...prev, prazo: '' }))
+                  }}
                   required
                 />
+                {fieldErrors.prazo && (
+                  <p className="text-xs text-red-500">{fieldErrors.prazo}</p>
+                )}{' '}
               </div>
             )}
             <div className="space-y-1.5">
               <Label>Horário Limite</Label>
-              <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
+              <Input
+                type="time"
+                value={horario}
+                onChange={(e) => {
+                  setHorario(e.target.value)
+                  setFieldErrors((prev) => ({ ...prev, horario: '' }))
+                }}
+              />
+              {fieldErrors.horario && <p className="text-xs text-red-500">{fieldErrors.horario}</p>}
             </div>
           </div>
           <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">

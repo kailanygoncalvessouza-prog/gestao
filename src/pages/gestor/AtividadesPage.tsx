@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AtividadeModal } from '@/components/atividades/AtividadeModal'
 import { Plus, Camera, Trash2, Calendar, Clock, Pencil, UserCheck, Repeat } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { formatPrazo } from '@/lib/utils'
 import useRealtime from '@/hooks/use-realtime'
 
 const priorityColor = (p: Priority) => {
@@ -220,7 +221,7 @@ export default function AtividadesPage() {
                 {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" /> {a.prazo}
+                    <Calendar className="h-3.5 w-3.5" /> {formatPrazo(a.prazo, a.horario)}
                   </span>
                   {a.horario && (
                     <span className="flex items-center gap-1">

@@ -10,6 +10,7 @@ import { TendenciaChart } from '@/components/dashboard/TendenciaChart'
 import { PrioridadeChart } from '@/components/dashboard/PrioridadeChart'
 import { CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AtividadesAtribuidasTable } from '@/components/metricas/AtividadesAtribuidasTable'
 import useRealtime from '@/hooks/use-realtime'
 
 export default function VisaoGeral() {
@@ -128,6 +129,12 @@ export default function VisaoGeral() {
           Acompanhe as métricas e o desempenho da equipe em tempo real.
         </p>
       </div>
+
+      <AtividadesAtribuidasTable
+        atividades={atividades}
+        colaboradores={colaboradores}
+        setores={setores}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard

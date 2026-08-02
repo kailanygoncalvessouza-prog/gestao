@@ -40,7 +40,6 @@ function getAttributionTarget(
 }
 
 function getPrazoDisplay(a: Atividade): string {
-  if (a.recorrencia_origem) return 'Recorrente'
   return formatPrazo(a.prazo, a.horario)
 }
 

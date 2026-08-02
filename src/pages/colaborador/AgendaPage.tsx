@@ -15,6 +15,7 @@ import { ChecklistList } from '@/components/colaborador/ChecklistList'
 import { Check, Camera, Clock, CheckCircle } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { formatPrazo } from '@/lib/utils'
 
 export default function AgendaPage() {
   const { colaborador } = useAuth()
@@ -108,11 +109,9 @@ export default function AgendaPage() {
                   {a.exige_foto && <Camera className="h-4 w-4 text-primary" />}
                 </div>
                 {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
-                {a.horario && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> {a.horario}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> {formatPrazo(a.prazo, a.horario)}
+                </p>
               </div>
               {a.status === 'pendente' ? (
                 <Button
