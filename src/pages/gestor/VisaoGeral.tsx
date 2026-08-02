@@ -2,28 +2,34 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { getAtividadesGestor } from '@/services/atividades'
 import { getColaboradores } from '@/services/colaboradores'
-import { Atividade, Colaborador } from '@/types'
+import { getSetores } from '@/services/setores'
+import { Atividade, Colaborador, Setor } from '@/types'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { RankingCard } from '@/components/dashboard/RankingCard'
 import { TendenciaChart } from '@/components/dashboard/TendenciaChart'
 import { PrioridadeChart } from '@/components/dashboard/PrioridadeChart'
 import { CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useRealtime from '@/hooks/use-realtime'
 
 export default function VisaoGeral() {
   const { user } = useAuth()
   const [atividades, setAtividades] = useState<Atividade[]>([])
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
+  const [setores, setSetores] = useState<Setor[]>([])
+  const [nivel, setNivel] = useState('individual')
 
   const loadData = async () => {
     if (!user?.empresa_id) return
     try {
-      const [ativs, colabs] = await Promise.all([
+      const [ativs, colabs, sets] = await Promise.all([
         getAtividadesGestor(user.empresa_id),
         getColaboradores(user.empresa_id),
+        getSetores(),
       ])
       setAtividades(ativs)
       setColaboradores(colabs)
+      setSetores(sets)
     } catch {
       /* intentionally ignored */
     }
@@ -47,16 +53,52 @@ export default function VisaoGeral() {
   }).length
   const naoFeitas = atividades.filter((a) => a.status === 'nao_feita').length
 
-  const ranking = colaboradores
+  const individualRanking = colaboradores
     .map((c) => {
-      const colabAtivs = atividades.filter((a) => a.colaborador_id === c.id)
+      const colabAtivs = atividades.filter(
+        (a) =>
+          a.colaborador_alvo_id === c.id ||
+          a.colaborador_id === c.id ||
+          a.atribuicao === 'QUALQUER_UM',
+      )
       const conc = colabAtivs.filter(
         (a) => a.status === 'concluida' || a.status === 'concluida_com_atraso',
       ).length
       const total = colabAtivs.length
-      const pct = total > 0 ? Math.round((conc / total) * 100) : 100
-      return { id: c.id, nome: c.nome, concluidas: conc, total, pct }
+      return {
+        id: c.id,
+        nome: c.nome,
+        concluidas: conc,
+        total,
+        pct: total > 0 ? Math.round((conc / total) * 100) : 100,
+      }
     })
+    .sort((a, b) => b.pct - a.pct)
+
+  const setorRanking = setores
+    .map((s) => {
+      const colabIds = colaboradores.filter((c) => c.setor_id === s.id).map((c) => c.id)
+      const setorAtivs = atividades.filter(
+        (a) =>
+          a.atribuicao === 'QUALQUER_UM' ||
+          (a.atribuicao === 'SETOR' && a.setor_alvo_id === s.id) ||
+          (a.atribuicao === 'COLABORADOR' &&
+            a.colaborador_alvo_id &&
+            colabIds.includes(a.colaborador_alvo_id)),
+      )
+      const conc = setorAtivs.filter(
+        (a) => a.status === 'concluida' || a.status === 'concluida_com_atraso',
+      ).length
+      const total = setorAtivs.length
+      return {
+        id: s.id,
+        nome: s.nome,
+        concluidas: conc,
+        total,
+        pct: total > 0 ? Math.round((conc / total) * 100) : 100,
+      }
+    })
+    .filter((s) => s.total > 0)
     .sort((a, b) => b.pct - a.pct)
 
   const prioridades = {
@@ -118,9 +160,16 @@ export default function VisaoGeral() {
         />
       </div>
 
+      <Tabs value={nivel} onValueChange={setNivel}>
+        <TabsList>
+          <TabsTrigger value="individual">Individual</TabsTrigger>
+          <TabsTrigger value="setor">Setor</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          <RankingCard ranking={ranking} />
+          <RankingCard ranking={nivel === 'individual' ? individualRanking : setorRanking} />
         </div>
         <div className="md:col-span-2 space-y-6">
           <TendenciaChart items={tendenciaData} />

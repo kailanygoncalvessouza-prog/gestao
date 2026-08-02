@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T18:53:48.462Z",
+  "generatedAt": "2026-08-02T20:25:11.425Z",
   "collections": [
     {
       "name": "users",
@@ -165,11 +165,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "setor_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "setores"
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_colab_token ON colaboradores (token_acesso)",
-        "CREATE INDEX idx_colab_empresa ON colaboradores (empresa_id)"
+        "CREATE INDEX idx_colab_empresa ON colaboradores (empresa_id)",
+        "CREATE INDEX `idx_colab_setor` ON `colaboradores` (setor_id)"
       ]
     },
     {
@@ -261,7 +269,7 @@
         {
           "name": "colaborador_id",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "colaboradores"
         },
@@ -353,22 +361,54 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "atribuicao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["QUALQUER_UM", "SETOR", "COLABORADOR"]
+        },
+        {
+          "name": "setor_alvo_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "setores"
+        },
+        {
+          "name": "colaborador_alvo_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "colaboradores"
+        },
+        {
+          "name": "concluida_por_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "colaboradores"
         }
       ],
       "indexes": [
         "CREATE INDEX idx_ativ_empresa_status ON atividades (empresa_id, status)",
-        "CREATE INDEX idx_ativ_colab_prazo ON atividades (colaborador_id, prazo)"
+        "CREATE INDEX idx_ativ_colab_prazo ON atividades (colaborador_id, prazo)",
+        "CREATE INDEX `idx_ativ_atribuicao` ON `atividades` (atribuicao)",
+        "CREATE INDEX `idx_ativ_setor_alvo` ON `atividades` (setor_alvo_id)",
+        "CREATE INDEX `idx_ativ_colab_alvo` ON `atividades` (colaborador_alvo_id)",
+        "CREATE INDEX `idx_ativ_concluida_por` ON `atividades` (concluida_por_id)"
       ]
     },
     {
       "name": "evidencias",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR'",
-        "view": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR'",
-        "create": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR'",
-        "update": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR'",
-        "delete": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR'"
+        "list": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR' && empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR' && empresa_id = @request.auth.empresa_id",
+        "create": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR' && empresa_id = @request.auth.empresa_id",
+        "update": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR' && empresa_id = @request.auth.empresa_id",
+        "delete": "@request.auth.id != '' && @request.auth.perfil = 'GESTOR' && empresa_id = @request.auth.empresa_id"
       },
       "fields": [
         {
@@ -423,9 +463,16 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "empresa_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "empresas"
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_evid_empresa` ON `evidencias` (empresa_id)"]
     },
     {
       "name": "notificacoes",
@@ -493,6 +540,46 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "setores",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_setores_nome ON setores (nome)"]
     }
   ]
 }

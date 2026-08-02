@@ -13,8 +13,14 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/status', (e) => {
     if (!colab.getBool('token_ativo')) return e.json(401, { error: 'Token inativo.' })
 
     const ativ = $app.findRecordById('atividades', id)
-    if (ativ.getString('colaborador_id') !== colab.id) {
+
+    if (ativ.getString('empresa_id') !== colab.getString('empresa_id')) {
       return e.json(403, { error: 'Acesso negado a esta atividade.' })
+    }
+
+    const currentStatus = ativ.getString('status')
+    if (currentStatus === 'concluida' || currentStatus === 'concluida_com_atraso') {
+      return e.json(400, { error: 'Esta atividade já foi concluída.' })
     }
 
     const now = new Date()
@@ -29,20 +35,25 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/status', (e) => {
         }
       }
       ativ.set('concluida_em', now.toISOString())
+      ativ.set('concluida_por_id', colab.id)
     }
 
     ativ.set('status', finalStatus)
     if (observacao) ativ.set('observacao', observacao)
     $app.save(ativ)
 
-    // Notify Gestor
     try {
       const notifCol = $app.findCollectionByNameOrId('notificacoes')
       const notif = new Record(notifCol)
       notif.set('usuario_id', ativ.getString('gestor_id'))
       notif.set(
         'mensagem',
-        `${colab.getString('nome')} atualizou a atividade '${ativ.getString('titulo')}' para ${finalStatus}.`,
+        colab.getString('nome') +
+          " atualizou a atividade '" +
+          ativ.getString('titulo') +
+          "' para " +
+          finalStatus +
+          '.',
       )
       notif.set('tipo', 'INAPP')
       notif.set('lida', false)

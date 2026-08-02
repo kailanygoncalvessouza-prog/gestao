@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -9,32 +9,61 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Colaborador } from '@/types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Colaborador, Setor } from '@/types'
 
 interface ColaboradorModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   colaborador?: Colaborador | null
-  onSave: (data: { nome: string; funcao: string; telefone: string }) => Promise<void>
+  setores: Setor[]
+  onSave: (data: {
+    nome: string
+    funcao: string
+    telefone: string
+    setor_id: string
+  }) => Promise<void>
 }
 
 export function ColaboradorModal({
   open,
   onOpenChange,
   colaborador,
+  setores,
   onSave,
 }: ColaboradorModalProps) {
-  const [nome, setNome] = useState(colaborador?.nome || '')
-  const [funcao, setFuncao] = useState(colaborador?.funcao || '')
-  const [telefone, setTelefone] = useState(colaborador?.telefone || '')
+  const [nome, setNome] = useState('')
+  const [funcao, setFuncao] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [setorId, setSetorId] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (colaborador) {
+      setNome(colaborador.nome)
+      setFuncao(colaborador.funcao || '')
+      setTelefone(colaborador.telefone || '')
+      setSetorId(colaborador.setor_id || '')
+    } else {
+      setNome('')
+      setFuncao('')
+      setTelefone('')
+      setSetorId('')
+    }
+  }, [colaborador, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!nome) return
+    if (!nome || !setorId) return
     setSaving(true)
     try {
-      await onSave({ nome, funcao, telefone })
+      await onSave({ nome, funcao, telefone, setor_id: setorId })
       onOpenChange(false)
     } finally {
       setSaving(false)
@@ -51,6 +80,21 @@ export function ColaboradorModal({
           <div className="space-y-1.5">
             <Label htmlFor="nome">Nome Completo *</Label>
             <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="setor">Setor *</Label>
+            <Select value={setorId} onValueChange={setSetorId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o setor..." />
+              </SelectTrigger>
+              <SelectContent>
+                {setores.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="funcao">Função / Cargo</Label>

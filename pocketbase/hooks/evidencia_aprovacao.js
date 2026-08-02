@@ -16,6 +16,7 @@ onRecordAfterUpdateSuccess((e) => {
         }
         ativ.set('status', finalStatus)
         ativ.set('concluida_em', now.toISOString())
+        ativ.set('concluida_por_id', rec.getString('colaborador_id'))
       } else {
         ativ.set('status', 'pendente')
       }

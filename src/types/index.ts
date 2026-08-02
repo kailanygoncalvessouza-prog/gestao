@@ -7,6 +7,15 @@ export type ActivityStatus =
   | 'nao_feita'
 export type EvidenceStatus = 'PENDENTE' | 'APROVADA' | 'REPROVADA'
 export type RecurrenceType = 'DIARIA' | 'SEMANAL' | 'MENSAL'
+export type AttributionType = 'QUALQUER_UM' | 'SETOR' | 'COLABORADOR'
+
+export interface Setor {
+  id: string
+  nome: string
+  ordem?: number
+  created: string
+  updated: string
+}
 
 export interface Empresa {
   id: string
@@ -35,6 +44,10 @@ export interface Colaborador {
   token_acesso: string
   token_ativo: boolean
   desativado_em?: string
+  setor_id: string
+  expand?: {
+    setor_id?: Setor
+  }
   created: string
   updated: string
 }
@@ -43,7 +56,7 @@ export interface Atividade {
   id: string
   empresa_id: string
   gestor_id: string
-  colaborador_id: string
+  colaborador_id?: string
   titulo: string
   descricao?: string
   categoria?: string
@@ -55,9 +68,16 @@ export interface Atividade {
   concluida_em?: string
   observacao?: string
   recorrencia_origem?: string
+  atribuicao: AttributionType
+  setor_alvo_id?: string
+  colaborador_alvo_id?: string
+  concluida_por_id?: string
   expand?: {
     colaborador_id?: Colaborador
     gestor_id?: User
+    setor_alvo_id?: Setor
+    colaborador_alvo_id?: Colaborador
+    concluida_por_id?: Colaborador
   }
   created: string
   updated: string
@@ -67,6 +87,7 @@ export interface Evidencia {
   id: string
   atividade_id: string
   colaborador_id: string
+  empresa_id?: string
   url_foto?: string
   localizacao_gps?: string
   status: EvidenceStatus

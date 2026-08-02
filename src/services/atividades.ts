@@ -1,14 +1,18 @@
 import pb from '@/lib/pocketbase/client'
 import { Atividade } from '@/types'
 
-export const getAtividadesGestor = (filters?: { status?: string; colaborador_id?: string }) => {
-  const parts: string[] = []
+const EXPAND = 'colaborador_id,gestor_id,colaborador_alvo_id,setor_alvo_id,concluida_por_id'
+
+export const getAtividadesGestor = (
+  empresaId: string,
+  filters?: { status?: string; colaborador_id?: string },
+) => {
+  const parts: string[] = [`empresa_id = '${empresaId}'`]
   if (filters?.status) parts.push(`status = '${filters.status}'`)
   if (filters?.colaborador_id) parts.push(`colaborador_id = '${filters.colaborador_id}'`)
-  const filter = parts.length ? parts.join(' && ') : ''
   return pb.collection('atividades').getFullList<Atividade>({
-    filter,
-    expand: 'colaborador_id,gestor_id',
+    filter: parts.join(' && '),
+    expand: EXPAND,
     sort: '-created',
   })
 }
@@ -21,10 +25,10 @@ export const updateAtividade = (id: string, data: Partial<Atividade>) =>
 
 export const deleteAtividade = (id: string) => pb.collection('atividades').delete(id)
 
-export const getColaboradorAgenda = (token: string) =>
+export const getColaboradorAgenda = (token: string, tipo: string = 'GERAL') =>
   pb.send('/backend/v1/colaborador/agenda', {
     method: 'GET',
-    query: { token },
+    query: { token, tipo },
   })
 
 export const updateColaboradorStatus = (atividadeId: string, token: string, status: string) =>

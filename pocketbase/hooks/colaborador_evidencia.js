@@ -33,8 +33,16 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
     throw new NotFoundError('Atividade não encontrada.')
   }
 
-  if (ativ.getString('colaborador_id') !== colab.id) {
+  if (ativ.getString('empresa_id') !== colab.getString('empresa_id')) {
     throw new ForbiddenError('Acesso negado a esta atividade.')
+  }
+
+  const currentStatus = ativ.getString('status')
+  if (currentStatus === 'concluida' || currentStatus === 'concluida_com_atraso') {
+    throw new BadRequestError('Esta atividade já foi concluída.')
+  }
+  if (currentStatus === 'em_andamento') {
+    throw new BadRequestError('Esta atividade já está em andamento por outro colaborador.')
   }
 
   let uploadedFiles = []
@@ -55,11 +63,11 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
     const evid = new Record(evidCol)
     evid.set('atividade_id', ativ.id)
     evid.set('colaborador_id', colab.id)
+    evid.set('empresa_id', colab.getString('empresa_id'))
     evid.set('status', 'PENDENTE')
     evid.set('enviada_em', new Date().toISOString())
     if (localizacao) evid.set('localizacao_gps', localizacao)
     evid.set('url_foto', uploadedFiles[0])
-
     $app.save(evid)
 
     ativ.set('status', 'em_andamento')

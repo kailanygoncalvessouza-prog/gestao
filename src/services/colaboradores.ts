@@ -4,6 +4,7 @@ import { Colaborador } from '@/types'
 export const getColaboradores = (empresaId: string) =>
   pb.collection('colaboradores').getFullList<Colaborador>({
     filter: `empresa_id = '${empresaId}'`,
+    expand: 'setor_id',
     sort: 'nome',
   })
 
@@ -12,6 +13,7 @@ export const createColaborador = async (data: {
   nome: string
   funcao?: string
   telefone?: string
+  setor_id: string
 }) => {
   const token = Math.random().toString(36).substring(2, 10).toUpperCase()
   return pb.collection('colaboradores').create<Colaborador>({
@@ -26,9 +28,7 @@ export const updateColaborador = (id: string, data: Partial<Colaborador>) =>
 
 export const toggleStatusColaborador = async (id: string, currentStatus: boolean) => {
   const newStatus = !currentStatus
-  const updateData: Partial<Colaborador> = {
-    token_ativo: newStatus,
-  }
+  const updateData: Partial<Colaborador> = { token_ativo: newStatus }
   if (!newStatus) {
     updateData.desativado_em = new Date().toISOString()
   } else {

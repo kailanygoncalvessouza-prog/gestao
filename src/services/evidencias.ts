@@ -1,13 +1,13 @@
 import pb from '@/lib/pocketbase/client'
 import { Evidencia } from '@/types'
 
-export const getEvidenciasGestor = (statusFilter?: string) => {
-  let filter = ''
+export const getEvidenciasGestor = (empresaId: string, statusFilter?: string) => {
+  const parts: string[] = [`empresa_id = '${empresaId}'`]
   if (statusFilter && statusFilter !== 'TODAS') {
-    filter = `status = '${statusFilter}'`
+    parts.push(`status = '${statusFilter}'`)
   }
   return pb.collection('evidencias').getFullList<Evidencia>({
-    filter,
+    filter: parts.join(' && '),
     expand: 'atividade_id,colaborador_id',
     sort: '-created',
   })
