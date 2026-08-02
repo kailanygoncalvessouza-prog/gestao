@@ -6,7 +6,7 @@ export type ActivityStatus =
   | 'concluida_com_atraso'
   | 'nao_feita'
 export type EvidenceStatus = 'PENDENTE' | 'APROVADA' | 'REPROVADA'
-export type RecurrenceType = 'DIARIA' | 'SEMANAL' | 'MENSAL'
+export type RecurrenceType = 'DIARIA' | 'SEMANAL' | 'MENSAL' | 'NENHUMA'
 export type AttributionType = 'QUALQUER_UM' | 'SETOR' | 'COLABORADOR'
 
 export interface Setor {
@@ -118,4 +118,29 @@ export interface ColaboradorSession {
   empresa_id: string
   empresa_nome?: string
   token: string
+}
+
+export interface Recorrencia {
+  id: string
+  frequencia: RecurrenceType
+  dia_semana?: string[]
+  dia_mes?: number
+  ativa: boolean
+  horario?: string
+  atividade_id: string
+  created: string
+  updated: string
+}
+
+export interface ItemChecklist {
+  id: string
+  atividade_id: string
+  descricao: string
+  ordem: number
+  feito: boolean
+  marcado_por_id?: string
+  marcado_em?: string
+  empresa_id: string
+  created: string
+  updated: string
 }

@@ -18,7 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Colaborador, Priority, Setor, AttributionType, Atividade } from '@/types'
+import { Colaborador, Priority, Setor, AttributionType, Atividade, RecurrenceType } from '@/types'
+import { FrequencySection } from '@/components/atividades/FrequencySection'
+import { ChecklistEditor, ChecklistItemInput } from '@/components/atividades/ChecklistEditor'
+import { getChecklistByAtividade } from '@/services/itens-checklist'
 
 interface AtividadeModalProps {
   open: boolean
@@ -26,6 +29,7 @@ interface AtividadeModalProps {
   colaboradores: Colaborador[]
   setores: Setor[]
   atividade?: Atividade | null
+  mode?: 'avulsa' | 'recorrente'
   onSave: (data: any) => Promise<void>
 }
 
@@ -35,6 +39,7 @@ export function AtividadeModal({
   colaboradores,
   setores,
   atividade,
+  mode = 'avulsa',
   onSave,
 }: AtividadeModalProps) {
   const [titulo, setTitulo] = useState('')
@@ -48,6 +53,11 @@ export function AtividadeModal({
   const [setorAlvoId, setSetorAlvoId] = useState('')
   const [colabAlvoId, setColabAlvoId] = useState('')
   const [saving, setSaving] = useState(false)
+  const [frequencia, setFrequencia] = useState<RecurrenceType>('DIARIA')
+  const [diaSemana, setDiaSemana] = useState('seg')
+  const [diaMes, setDiaMes] = useState<number | ''>(1)
+  const [horarioRec, setHorarioRec] = useState('09:00')
+  const [checklist, setChecklist] = useState<ChecklistItemInput[]>([])
 
   useEffect(() => {
     if (atividade) {
@@ -61,6 +71,11 @@ export function AtividadeModal({
       setAtribuicao(atividade.atribuicao || 'QUALQUER_UM')
       setSetorAlvoId(atividade.setor_alvo_id || '')
       setColabAlvoId(atividade.colaborador_alvo_id || atividade.colaborador_id || '')
+      getChecklistByAtividade(atividade.id)
+        .then((items) =>
+          setChecklist(items.map((i) => ({ id: i.id, descricao: i.descricao, ordem: i.ordem }))),
+        )
+        .catch(() => setChecklist([]))
     } else {
       setTitulo('')
       setDescricao('')
@@ -72,6 +87,11 @@ export function AtividadeModal({
       setAtribuicao('QUALQUER_UM')
       setSetorAlvoId('')
       setColabAlvoId('')
+      setFrequencia('DIARIA')
+      setDiaSemana('seg')
+      setDiaMes(1)
+      setHorarioRec('09:00')
+      setChecklist([])
     }
   }, [atividade, open])
 
@@ -80,6 +100,7 @@ export function AtividadeModal({
     if (!titulo || !prazo) return
     if (atribuicao === 'SETOR' && !setorAlvoId) return
     if (atribuicao === 'COLABORADOR' && !colabAlvoId) return
+    if (mode === 'recorrente' && !horarioRec) return
     setSaving(true)
     try {
       const data: any = {
@@ -94,11 +115,17 @@ export function AtividadeModal({
         setor_alvo_id: null,
         colaborador_alvo_id: null,
         colaborador_id: null,
+        checklist: checklist.filter((i) => i.descricao.trim() !== ''),
       }
       if (atribuicao === 'SETOR') data.setor_alvo_id = setorAlvoId
       if (atribuicao === 'COLABORADOR') {
         data.colaborador_alvo_id = colabAlvoId
         data.colaborador_id = colabAlvoId
+      }
+      if (mode === 'recorrente' && !atividade) {
+        data.recorrencia = { frequencia, horario: horarioRec }
+        if (frequencia === 'SEMANAL') data.recorrencia.dia_semana = [diaSemana]
+        if (frequencia === 'MENSAL') data.recorrencia.dia_mes = diaMes
       }
       await onSave(data)
       onOpenChange(false)
@@ -107,11 +134,19 @@ export function AtividadeModal({
     }
   }
 
+  const isRecorrente = mode === 'recorrente' && !atividade
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{atividade ? 'Editar Atividade' : 'Nova Atividade'}</DialogTitle>
+          <DialogTitle>
+            {atividade
+              ? 'Editar Atividade'
+              : isRecorrente
+                ? 'Nova Atividade Recorrente'
+                : 'Nova Atividade'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-1.5">
@@ -228,12 +263,31 @@ export function AtividadeModal({
             </div>
             <Switch checked={exigeFoto} onCheckedChange={setExigeFoto} />
           </div>
+          {isRecorrente && (
+            <FrequencySection
+              frequencia={frequencia}
+              onFrequenciaChange={setFrequencia}
+              diaSemana={diaSemana}
+              onDiaSemanaChange={setDiaSemana}
+              diaMes={diaMes}
+              onDiaMesChange={setDiaMes}
+              horario={horarioRec}
+              onHorarioChange={setHorarioRec}
+            />
+          )}
+          <ChecklistEditor items={checklist} onChange={setChecklist} />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Salvando...' : atividade ? 'Salvar' : 'Criar Atividade'}
+              {saving
+                ? 'Salvando...'
+                : atividade
+                  ? 'Salvar'
+                  : isRecorrente
+                    ? 'Criar Atividade Recorrente'
+                    : 'Criar Atividade'}
             </Button>
           </DialogFooter>
         </form>

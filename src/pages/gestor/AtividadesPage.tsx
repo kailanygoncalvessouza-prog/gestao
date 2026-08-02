@@ -8,12 +8,19 @@ import {
 } from '@/services/atividades'
 import { getColaboradores } from '@/services/colaboradores'
 import { getSetores } from '@/services/setores'
+import {
+  getChecklistByAtividade,
+  createChecklistItem,
+  updateChecklistItem,
+  deleteChecklistItem,
+} from '@/services/itens-checklist'
+import { createRecorrencia } from '@/services/recorrencias'
 import { Atividade, Colaborador, Setor, Priority, AttributionType } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { AtividadeModal } from '@/components/atividades/AtividadeModal'
-import { Plus, Camera, Trash2, Calendar, Clock, Pencil, UserCheck } from 'lucide-react'
+import { Plus, Camera, Trash2, Calendar, Clock, Pencil, UserCheck, Repeat } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import useRealtime from '@/hooks/use-realtime'
 
@@ -43,6 +50,7 @@ export default function AtividadesPage() {
   const [setores, setSetores] = useState<Setor[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAtiv, setEditingAtiv] = useState<Atividade | null>(null)
+  const [modalMode, setModalMode] = useState<'avulsa' | 'recorrente'>('avulsa')
 
   const loadData = async () => {
     if (!user?.empresa_id) return
@@ -67,24 +75,68 @@ export default function AtividadesPage() {
 
   const handleSave = async (data: any) => {
     if (!user?.id || !user?.empresa_id) return
+    const { checklist, recorrencia, ...ativData } = data
+
+    let ativId: string
     if (editingAtiv) {
-      await updateAtividade(editingAtiv.id, data)
+      await updateAtividade(editingAtiv.id, ativData)
+      ativId = editingAtiv.id
       toast({ title: 'Atividade atualizada!' })
     } else {
-      await createAtividade({
-        ...data,
+      const newAtiv = await createAtividade({
+        ...ativData,
         gestor_id: user.id,
         empresa_id: user.empresa_id,
         status: 'pendente',
       })
+      ativId = newAtiv.id
       toast({ title: 'Atividade criada com sucesso!' })
     }
+
+    const existingItems = await getChecklistByAtividade(ativId)
+    const existingIds = existingItems.map((i) => i.id)
+    const keptIds: string[] = []
+
+    for (const item of checklist) {
+      if (item.id) {
+        await updateChecklistItem(item.id, {
+          descricao: item.descricao,
+          ordem: item.ordem,
+        })
+        keptIds.push(item.id)
+      } else {
+        const created = await createChecklistItem({
+          atividade_id: ativId,
+          descricao: item.descricao,
+          ordem: item.ordem,
+          feito: false,
+          empresa_id: user.empresa_id,
+        })
+        keptIds.push(created.id)
+      }
+    }
+
+    for (const oldId of existingIds) {
+      if (!keptIds.includes(oldId)) {
+        await deleteChecklistItem(oldId)
+      }
+    }
+
+    if (recorrencia && !editingAtiv) {
+      await createRecorrencia({
+        ...recorrencia,
+        atividade_id: ativId,
+        ativa: true,
+      })
+    }
+
     setEditingAtiv(null)
     loadData()
   }
 
   const handleEdit = (a: Atividade) => {
     setEditingAtiv(a)
+    setModalMode('avulsa')
     setModalOpen(true)
   }
 
@@ -109,15 +161,29 @@ export default function AtividadesPage() {
             Cadastre e distribua tarefas para a equipe.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingAtiv(null)
-            setModalOpen(true)
-          }}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" /> Nova Atividade
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingAtiv(null)
+              setModalMode('recorrente')
+              setModalOpen(true)
+            }}
+            className="gap-2"
+          >
+            <Repeat className="h-4 w-4" /> Criar Recorrente
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingAtiv(null)
+              setModalMode('avulsa')
+              setModalOpen(true)
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" /> Nova Atividade
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -134,6 +200,11 @@ export default function AtividadesPage() {
                   <Badge variant="secondary" className="text-[10px]">
                     {atribuicaoLabel[a.atribuicao || 'QUALQUER_UM']}: {getAttributionTarget(a)}
                   </Badge>
+                  {a.recorrencia_origem && (
+                    <Badge variant="outline" className="text-[10px] gap-1">
+                      <Repeat className="h-3 w-3" /> Recorrente
+                    </Badge>
+                  )}
                 </div>
                 {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
@@ -178,6 +249,7 @@ export default function AtividadesPage() {
         colaboradores={colaboradores.filter((c) => c.token_ativo)}
         setores={setores}
         atividade={editingAtiv}
+        mode={modalMode}
         onSave={handleSave}
       />
     </div>

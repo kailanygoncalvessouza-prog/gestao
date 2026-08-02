@@ -27,6 +27,27 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/status', (e) => {
     let finalStatus = status
 
     if (status === 'concluida') {
+      const checklistItems = $app.findRecordsByFilter(
+        'itens_checklist',
+        "atividade_id = '" + id + "'",
+        '',
+        1000,
+        0,
+      )
+      if (checklistItems.length > 0) {
+        let pendingCount = 0
+        for (let ci = 0; ci < checklistItems.length; ci++) {
+          if (!checklistItems[ci].getBool('feito')) pendingCount++
+        }
+        if (pendingCount > 0) {
+          return e.json(400, {
+            error:
+              'Existem ' +
+              pendingCount +
+              ' itens do checklist pendentes. Complete todos antes de concluir a atividade.',
+          })
+        }
+      }
       const prazoDateStr = ativ.getString('prazo')
       if (prazoDateStr) {
         const prazoDate = new Date(prazoDateStr)

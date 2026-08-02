@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PhotoUploadModal } from '@/components/evidencias/PhotoUploadModal'
+import { ChecklistList } from '@/components/colaborador/ChecklistList'
 import { Check, Camera, Clock, CheckCircle } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
@@ -23,6 +24,7 @@ export default function AgendaPage() {
   const [selectedAtiv, setSelectedAtiv] = useState<Atividade | null>(null)
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('geral')
+  const [checklistReady, setChecklistReady] = useState<Record<string, boolean>>({})
 
   const loadData = async () => {
     if (!colaborador?.token) return
@@ -94,31 +96,47 @@ export default function AgendaPage() {
       )}
       {ativs.map((a) => (
         <Card key={a.id} className="shadow-sm">
-          <CardContent className="p-4 flex items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3
-                  className={`font-semibold text-base ${a.status === 'concluida' ? 'line-through text-muted-foreground' : ''}`}
-                >
-                  {a.titulo}
-                </h3>
-                {a.exige_foto && <Camera className="h-4 w-4 text-primary" />}
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3
+                    className={`font-semibold text-base ${a.status === 'concluida' ? 'line-through text-muted-foreground' : ''}`}
+                  >
+                    {a.titulo}
+                  </h3>
+                  {a.exige_foto && <Camera className="h-4 w-4 text-primary" />}
+                </div>
+                {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
+                {a.horario && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {a.horario}
+                  </p>
+                )}
               </div>
-              {a.descricao && <p className="text-xs text-muted-foreground">{a.descricao}</p>}
-              {a.horario && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {a.horario}
-                </p>
+              {a.status === 'pendente' ? (
+                <Button
+                  size="sm"
+                  onClick={() => handleComplete(a)}
+                  className="gap-1"
+                  disabled={checklistReady[a.id] === false}
+                >
+                  <Check className="h-4 w-4" /> Concluir
+                </Button>
+              ) : (
+                <Badge variant="outline" className="capitalize">
+                  {a.status.replace('_', ' ')}
+                </Badge>
               )}
             </div>
-            {a.status === 'pendente' ? (
-              <Button size="sm" onClick={() => handleComplete(a)} className="gap-1">
-                <Check className="h-4 w-4" /> Concluir
-              </Button>
-            ) : (
-              <Badge variant="outline" className="capitalize">
-                {a.status.replace('_', ' ')}
-              </Badge>
+            {a.status === 'pendente' && (
+              <ChecklistList
+                atividadeId={a.id}
+                token={colaborador?.token || ''}
+                onAllCheckedChange={(allChecked) =>
+                  setChecklistReady((prev) => ({ ...prev, [a.id]: allChecked }))
+                }
+              />
             )}
           </CardContent>
         </Card>
