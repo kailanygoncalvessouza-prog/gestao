@@ -1,13 +1,15 @@
 import pb from '@/lib/pocketbase/client'
 import { Atividade } from '@/types'
 
-export const getAtividadesGestor = (empresaId: string, filterStr?: string) => {
-  let filter = `empresa_id = '${empresaId}'`
-  if (filterStr) filter += ` && (${filterStr})`
+export const getAtividadesGestor = (filters?: { status?: string; colaborador_id?: string }) => {
+  const parts: string[] = []
+  if (filters?.status) parts.push(`status = '${filters.status}'`)
+  if (filters?.colaborador_id) parts.push(`colaborador_id = '${filters.colaborador_id}'`)
+  const filter = parts.length ? parts.join(' && ') : ''
   return pb.collection('atividades').getFullList<Atividade>({
     filter,
-    expand: 'colaborador_id',
-    sort: '-prazo,horario',
+    expand: 'colaborador_id,gestor_id',
+    sort: '-created',
   })
 }
 
@@ -19,40 +21,34 @@ export const updateAtividade = (id: string, data: Partial<Atividade>) =>
 
 export const deleteAtividade = (id: string) => pb.collection('atividades').delete(id)
 
-export const getColaboradorAgenda = (token: string, dateStr?: string) => {
-  const query = new URLSearchParams({ token })
-  if (dateStr) query.append('data', dateStr)
-  return pb.send(`/backend/v1/colaborador/agenda?${query.toString()}`, { method: 'GET' })
-}
-
-export const updateColaboradorStatus = (
-  id: string,
-  token: string,
-  status: string,
-  observacao?: string,
-) =>
-  pb.send(`/backend/v1/colaborador/atividades/${id}/status`, {
-    method: 'POST',
-    body: JSON.stringify({ token, status, observacao }),
-    headers: { 'Content-Type': 'application/json' },
+export const getColaboradorAgenda = (token: string) =>
+  pb.send('/backend/v1/colaborador/agenda', {
+    method: 'GET',
+    query: { token },
   })
 
-export const submitColaboradorEvidencia = async (
-  id: string,
+export const updateColaboradorStatus = (atividadeId: string, token: string, status: string) =>
+  pb.send(`/backend/v1/colaborador/atividades/${atividadeId}/status`, {
+    method: 'POST',
+    body: { token, status },
+  })
+
+export const submitColaboradorEvidencia = (
+  atividadeId: string,
   token: string,
-  fotoFile: File,
+  file: File,
   consentimento: boolean,
-  localizacao?: string,
+  localizacao: string,
   observacao?: string,
 ) => {
   const formData = new FormData()
   formData.append('token', token)
   formData.append('consentimento', String(consentimento))
-  formData.append('foto', fotoFile)
-  if (localizacao) formData.append('localizacao', localizacao)
+  formData.append('localizacao', localizacao)
   if (observacao) formData.append('observacao', observacao)
+  formData.append('foto', file)
 
-  return pb.send(`/backend/v1/colaborador/atividades/${id}/evidencia`, {
+  return pb.send(`/backend/v1/colaborador/atividades/${atividadeId}/evidencia`, {
     method: 'POST',
     body: formData,
   })

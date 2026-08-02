@@ -7,22 +7,50 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
   const observacao = body.observacao || ''
 
   if (!consentimento) {
-    return e.json(400, {
-      error: 'Você precisa aceitar os termos da LGPD para enviar a comprovação.',
+    throw new BadRequestError('Você precisa aceitar os termos da LGPD para enviar a comprovação.', {
+      consentimento: new ValidationError('required', 'É necessário aceitar os termos da LGPD.'),
     })
   }
-  if (!token) return e.json(401, { error: 'Token não fornecido.' })
+  if (!token) {
+    throw new UnauthorizedError('Token não fornecido.')
+  }
+
+  let colab
+  try {
+    colab = $app.findFirstRecordByData('colaboradores', 'token_acesso', token)
+  } catch (_) {
+    throw new UnauthorizedError('Token inválido ou não encontrado.')
+  }
+
+  if (!colab.getBool('token_ativo')) {
+    throw new UnauthorizedError('Token inativo. Contate seu gestor.')
+  }
+
+  let ativ
+  try {
+    ativ = $app.findRecordById('atividades', id)
+  } catch (_) {
+    throw new NotFoundError('Atividade não encontrada.')
+  }
+
+  if (ativ.getString('colaborador_id') !== colab.id) {
+    throw new ForbiddenError('Acesso negado a esta atividade.')
+  }
+
+  let uploadedFiles = []
+  try {
+    uploadedFiles = e.findUploadedFiles('foto')
+  } catch (_) {
+    uploadedFiles = []
+  }
+
+  if (!uploadedFiles || uploadedFiles.length === 0) {
+    throw new BadRequestError('Nenhuma foto foi enviada.', {
+      foto: new ValidationError('required', 'A foto é obrigatória para esta atividade.'),
+    })
+  }
 
   try {
-    const colab = $app.findFirstRecordByData('colaboradores', 'token_acesso', token)
-    if (!colab.getBool('token_ativo')) return e.json(401, { error: 'Token inativo.' })
-
-    const ativ = $app.findRecordById('atividades', id)
-    if (ativ.getString('colaborador_id') !== colab.id) {
-      return e.json(403, { error: 'Acesso negado a esta atividade.' })
-    }
-
-    const uploadedFiles = e.findUploadedFiles('foto')
     const evidCol = $app.findCollectionByNameOrId('evidencias')
     const evid = new Record(evidCol)
     evid.set('atividade_id', ativ.id)
@@ -30,9 +58,7 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
     evid.set('status', 'PENDENTE')
     evid.set('enviada_em', new Date().toISOString())
     if (localizacao) evid.set('localizacao_gps', localizacao)
-    if (uploadedFiles && uploadedFiles.length > 0) {
-      evid.set('url_foto', uploadedFiles[0])
-    }
+    evid.set('url_foto', uploadedFiles[0])
 
     $app.save(evid)
 
@@ -40,14 +66,17 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
     if (observacao) ativ.set('observacao', observacao)
     $app.save(ativ)
 
-    // Notify Gestor
     try {
       const notifCol = $app.findCollectionByNameOrId('notificacoes')
       const notif = new Record(notifCol)
       notif.set('usuario_id', ativ.getString('gestor_id'))
       notif.set(
         'mensagem',
-        `Nova foto de comprovação enviada por ${colab.getString('nome')} para '${ativ.getString('titulo')}'.`,
+        'Nova foto de comprovação enviada por ' +
+          colab.getString('nome') +
+          " para '" +
+          ativ.getString('titulo') +
+          "'.",
       )
       notif.set('tipo', 'INAPP')
       notif.set('lida', false)
@@ -57,6 +86,14 @@ routerAdd('POST', '/backend/v1/colaborador/atividades/{id}/evidencia', (e) => {
 
     return e.json(201, { success: true, evidencia: evid })
   } catch (err) {
-    return e.json(400, { error: err.message || 'Erro ao enviar evidência.' })
+    if (
+      err instanceof BadRequestError ||
+      err instanceof UnauthorizedError ||
+      err instanceof ForbiddenError ||
+      err instanceof NotFoundError
+    ) {
+      throw err
+    }
+    throw new BadRequestError(err.message || 'Erro ao enviar evidência.')
   }
 })

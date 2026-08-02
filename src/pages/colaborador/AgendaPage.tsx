@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { PhotoUploadModal } from '@/components/evidencias/PhotoUploadModal'
 import { Check, Camera, Clock, CheckCircle } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function AgendaPage() {
   const { colaborador } = useAuth()
@@ -39,9 +40,17 @@ export default function AgendaPage() {
       setSelectedAtiv(ativ)
       setPhotoModalOpen(true)
     } else {
-      await updateColaboradorStatus(ativ.id, colaborador.token, 'concluida')
-      toast({ title: 'Atividade concluída com sucesso!' })
-      loadData()
+      try {
+        await updateColaboradorStatus(ativ.id, colaborador.token, 'concluida')
+        toast({ title: 'Atividade concluída com sucesso!' })
+        loadData()
+      } catch (error) {
+        toast({
+          title: 'Erro ao concluir atividade',
+          description: getErrorMessage(error),
+          variant: 'destructive',
+        })
+      }
     }
   }
 
