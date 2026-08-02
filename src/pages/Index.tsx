@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ListCheck, Key, Lock, Mail, Building, User as UserIcon } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
+import { ListCheck, Key, Lock, Mail, Building, User as UserIcon, AlertCircle } from 'lucide-react'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
 export default function Index() {
@@ -19,6 +18,7 @@ export default function Index() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loadingGestor, setLoadingGestor] = useState(false)
+  const [loginError, setLoginError] = useState('')
 
   // Sign Up Modal State
   const [signUpOpen, setSignUpOpen] = useState(false)
@@ -35,15 +35,12 @@ export default function Index() {
 
   const handleGestorLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoginError('')
     setLoadingGestor(true)
     const { error } = await signInGestor(email, password)
     setLoadingGestor(false)
     if (error) {
-      toast({
-        title: 'Erro ao entrar',
-        description: 'Credenciais inválidas.',
-        variant: 'destructive',
-      })
+      setLoginError('E-mail ou senha incorretos. Verifique e tente novamente.')
     } else {
       navigate('/gestor/visao-geral')
     }
@@ -142,6 +139,12 @@ export default function Index() {
 
               <TabsContent value="gestor">
                 <form onSubmit={handleGestorLogin} className="space-y-4">
+                  {loginError && (
+                    <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950/50 p-3 text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 animate-fade-in">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{loginError}</span>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label htmlFor="email">E-mail</Label>
                     <div className="relative">
