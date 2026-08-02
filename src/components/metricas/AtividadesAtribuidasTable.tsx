@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Download, Repeat } from 'lucide-react'
 import { exportToExcel } from '@/lib/excel-export'
+import { formatPrazo } from '@/lib/utils'
 
 function getDisplayStatus(a: Atividade): string {
   if (a.status === 'concluida' || a.status === 'concluida_com_atraso') return 'Concluído'
@@ -40,7 +41,7 @@ function getAttributionTarget(
 
 function getPrazoDisplay(a: Atividade): string {
   if (a.recorrencia_origem) return 'Recorrente'
-  return a.prazo || '—'
+  return formatPrazo(a.prazo, a.horario)
 }
 
 const statusColor: Record<string, string> = {
@@ -95,10 +96,10 @@ export function AtividadesAtribuidasTable({ atividades, colaboradores, setores }
                   <TableCell>
                     {a.recorrencia_origem ? (
                       <span className="flex items-center gap-1 text-xs">
-                        <Repeat className="h-3 w-3" /> {a.prazo}
+                        <Repeat className="h-3 w-3" /> {formatPrazo(a.prazo, a.horario)}
                       </span>
                     ) : (
-                      a.prazo || '—'
+                      formatPrazo(a.prazo, a.horario)
                     )}
                   </TableCell>
                   <TableCell>

@@ -106,6 +106,12 @@ export default function MetricasPage() {
         </TabsList>
       </Tabs>
 
+      <AtividadesAtribuidasTable
+        atividades={atividades}
+        colaboradores={colaboradores}
+        setores={setores}
+      />
+
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold">Tabela de Desempenho</CardTitle>
@@ -143,12 +149,6 @@ export default function MetricasPage() {
           </Table>
         </CardContent>
       </Card>
-
-      <AtividadesAtribuidasTable
-        atividades={atividades}
-        colaboradores={colaboradores}
-        setores={setores}
-      />
     </div>
   )
 }

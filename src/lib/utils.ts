@@ -12,3 +12,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Add any other utility functions here
+
+export function formatPrazo(prazo: string, horario?: string): string {
+  if (!prazo) return '—'
+  const parts = prazo.split('T')[0].split('-')
+  if (parts.length !== 3) return prazo
+  const time = horario || '00:00'
+  return `${parts[2]}-${parts[1]}-${parts[0]} ${time}`
+}
